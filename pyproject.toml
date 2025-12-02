@@ -1,0 +1,7 @@
+[project]
+name = "hexlet-code"
+version = "0.1.0"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
