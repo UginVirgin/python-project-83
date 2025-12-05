@@ -1,7 +1,10 @@
-[project]
+[tool.poetry]
 name = "hexlet-code"
 version = "0.1.0"
+description = ""
+authors = ["Your Name <youremail@example.com>"]
+edition = "2021"
 
-[tool.black]
-line-length = 88
-target-version = ['py38']
+[tool.poetry.dependencies]
+python = "^3.14"
+Flask = "^3.1"
