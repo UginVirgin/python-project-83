@@ -3,7 +3,7 @@ name = "hexlet-code"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Your Name", email = "youremail@example.com" }]
-requires-python = "^3.10"
+requires-python = ">=3.10"
 dependencies = [
   "flask >= 3.1"
 ]
@@ -16,5 +16,5 @@ authors = ["Your Name <youremail@example.com>"]
 edition = "2021"
 
 [tool.poetry.dependencies]
-python = "^3.10"
-flask = "^3.1"
+python = ">=3.10"
+flask = ">=3.1"
