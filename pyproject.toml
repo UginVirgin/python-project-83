@@ -18,3 +18,4 @@ edition = "2021"
 [tool.poetry.dependencies]
 python = ">=3.10"
 flask = ">=3.1"
+python-dotenv = "0.0.9"
