@@ -5,7 +5,8 @@ description = ""
 authors = [{ name = "Your Name", email = "youremail@example.com" }]
 requires-python = ">=3.10"
 dependencies = [
-  "flask >= 3.1"
+  "flask >= 3.1",
+  "python-dotenv (>=1.2.1,<2.0.0)"
 ]
 
 [tool.poetry]
@@ -13,9 +14,7 @@ name = "hexlet-code"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <youremail@example.com>"]
-edition = "2021"
 
 [tool.poetry.dependencies]
 python = ">=3.10"
 flask = ">=3.1"
-python-dotenv = "1.2.1"
