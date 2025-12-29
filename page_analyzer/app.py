@@ -35,7 +35,7 @@ def urls():
                 result = redirect(url_for('urls_check', id=new_row_id))
         else:
             flash('Некорректный URL', category='alert alert-danger')
-            result = redirect(url_for('hello'))
+            result = render_template('index.html'), 422
         print(url)
         return result
     
