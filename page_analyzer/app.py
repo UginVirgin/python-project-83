@@ -25,16 +25,16 @@ def urls():
         url = request.form['url']
         if validators.url(url):
             if is_url_exists(url):
-                flash('Страница уже существует', category='alert alert-success')
+                flash('Страница уже существует', category='alert-success')
                 id = get_url_id(url)['id']
                 result = redirect(url_for('urls_check', id=id))
             else:
                 new_row_id = add_row(url)
                 print('это urls validators')
-                flash('Страница успешно добавлена', category='alert alert-success')
+                flash('Страница успешно добавлена', category='alert-success')
                 result = redirect(url_for('urls_check', id=new_row_id))
         else:
-            flash('Некорректный URL', category='alert alert-danger')
+            flash('Некорректный URL', category='alert-danger')
             result = render_template('index.html'), 422
         print(url)
         return result
