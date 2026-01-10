@@ -12,13 +12,13 @@ def url_parser(url):
         soup = BeautifulSoup(html, 'html.parser')
 
         h1_tag = soup.find('h1')
-        h1 = h1_tag.string if h1_tag else None
+        h1 = h1_tag.string if h1_tag else ''
 
         title_tag = soup.find('title')
-        title = title_tag.string if title_tag else None
+        title = title_tag.string if title_tag else ''
 
         description_tag = soup.find('meta', attrs={'name': 'description'})
-        description = description_tag['content'] if description_tag and 'content' in description_tag.attrs else None
+        description = description_tag['content'] if description_tag and 'content' in description_tag.attrs else ''
 
         return {
             'status_code': status_code,
@@ -27,5 +27,19 @@ def url_parser(url):
             'description': description
         }
     except requests.RequestException as e:
-        print(f"Ошибка запроса: {e}")
-        return None
+        print(f"Ошибка запроса для URL {url}: {e}")
+        # ВАЖНО: возвращаем словарь, а не None!
+        return {
+            'status_code': None,
+            'h1': '',
+            'title': '',
+            'description': ''
+        }
+    except Exception as e:
+        print(f"Неожиданная ошибка при парсинге URL {url}: {e}")
+        return {
+            'status_code': None,
+            'h1': '',
+            'title': '',
+            'description': ''
+        }
