@@ -3,18 +3,19 @@ import psycopg2.extras
 from dotenv import load_dotenv
 import os
 from datetime import datetime
+from urllib.parse import urlparse
 
 
 load_dotenv()
 
-# Получаем DATABASE_URL из переменных окружения
+
 DATABASE_URL = os.getenv('DATABASE_URL')
 
-# Если DATABASE_URL не установлен, пробуем старое имя переменной
+
 if not DATABASE_URL:
     DATABASE_URL = os.getenv('DB_URL')
 
-# Если все еще нет - используем значение по умолчанию для Docker
+
 if not DATABASE_URL:
     DATABASE_URL = "postgresql://postgres:password@localhost:5433/hexlet_project_83"
 
@@ -25,6 +26,20 @@ def db_connection():
     print(f"Подключаемся к БД: {DATABASE_URL}")
     conn = psycopg2.connect(DATABASE_URL)
     return conn
+
+
+def normalize_url(url):
+    parsed = urlparse(url)
+    
+    normalized = parsed.netloc + parsed.path
+    
+    if normalized.startswith('www.'):
+        normalized = normalized[4:]
+    
+    if normalized.endswith('/'):
+        normalized = normalized[:-1]
+    
+    return normalized
 
 
 def add_row(url):
@@ -50,12 +65,17 @@ def is_url_exists(url):
     conn = db_connection()
     cur = conn.cursor()
     try:
-        cur.execute('SELECT id FROM urls WHERE name = %s;', (url,))
-        result = cur.fetchone()
-        if result:
-            return True
-        else:
-            return False
+        normalized_input = normalize_url(url)
+        
+        cur.execute('SELECT name FROM urls;')
+        all_urls = cur.fetchall()
+        
+        for db_url in all_urls:
+            normalized_db = normalize_url(db_url[0])
+            if normalized_db == normalized_input:
+                return True
+        
+        return False
     finally:
         conn.close()
         cur.close()
