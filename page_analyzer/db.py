@@ -3,7 +3,7 @@ import psycopg2.extras
 from dotenv import load_dotenv
 import os
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 
 load_dotenv()
@@ -28,19 +28,10 @@ if not DATABASE_URL:
 print(f"DEBUG: Используем DATABASE_URL: {DATABASE_URL}")
 
 
-def normalize_url(url):
-
-    parsed = urlparse(url)
-    
-    domain = parsed.netloc
-    
-    if ':' in domain:
-        domain = domain.split(':')[0]
-    
-    if domain.startswith('www.'):
-        domain = domain[4:]
-    
-    return domain
+def normalize_url(input_url):
+    url_parts = urlparse(input_url)
+    normalized_url = urlunparse((url_parts.scheme, url_parts.netloc, '', '', '', ''))
+    return normalized_url
 
 
 def db_connection():

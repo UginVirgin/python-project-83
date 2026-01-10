@@ -24,8 +24,13 @@ def urls():
         if validators.url(url):
             if is_url_exists(url):
                 flash('Страница уже существует', category='alert-success')
-                id = get_url_id(url)['id']
-                result = redirect(url_for('urls_check', id=id))
+                url_id_result = get_url_id(url)
+                if url_id_result and 'id' in url_id_result:
+                    id = url_id_result['id']
+                    result = redirect(url_for('urls_check', id=id))
+                else:
+                    flash('Ошибка: не найден ID URL', 'danger')
+                    result = redirect(url_for('hello'))
             else:
                 new_row_id = add_row(url)
                 flash('Страница успешно добавлена', category='alert-success')
@@ -36,7 +41,7 @@ def urls():
         return result
     
     urls = get_all_urls()
-    return render_template('urls.html',urls=urls)
+    return render_template('urls.html', urls=urls)
 
 
 @app.route('/urls/<id>', methods=['POST', 'GET'])
