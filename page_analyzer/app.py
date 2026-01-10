@@ -47,17 +47,25 @@ def urls():
 @app.route('/urls/<id>', methods=['POST', 'GET'])
 def urls_check(id):
     url_values = get_url_values(id)
-    url_name = url_values['name']
-    print(url_values)
-
-    url_checks = get_url_checks(url_name)
+    if not url_values:
+        flash('URL не найден', 'danger')
+        return redirect(url_for('urls'))
+    
+    # Исправлено: передаем ID, а не имя URL
+    url_checks = get_url_checks(id)
+    print(f"DEBUG: Получено {len(url_checks)} проверок для URL ID {id}")
 
     return render_template('url_id.html', url_values=url_values, checks=url_checks)
 
 
 @app.route('/urls/<int:id>/checks', methods=['POST'])
 def check_url_info(id):
-    url = get_url_values(id)["name"]
+    url_data = get_url_values(id)
+    if not url_data:
+        flash('URL не найден', 'danger')
+        return redirect(url_for('urls'))
+    
+    url = url_data["name"]
     
     try:
         parser_result = url_parser(url)
@@ -66,7 +74,8 @@ def check_url_info(id):
         if parser_result is None or parser_result.get('status_code') is None:
             flash('Произошла ошибка при проверке', 'danger')
         else:
-            make_url_check(url, parser_result)
+            # Исправлено: передаем ID, а не имя URL
+            make_url_check(id, parser_result)
             flash('Страница успешно проверена', 'success')
             
     except Exception as e:
@@ -74,4 +83,3 @@ def check_url_info(id):
         flash('Произошла ошибка при проверке', 'danger')
     
     return redirect(url_for('urls_check', id=id))
-

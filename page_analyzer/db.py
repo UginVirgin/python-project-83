@@ -43,7 +43,10 @@ def db_connection():
 def add_row(url):
     conn = db_connection()
     cur = conn.cursor()
-    cur.execute('INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id', (url, datetime.now()))
+    # Нормализуем URL перед сохранением
+    normalized_url = normalize_url(url)
+    cur.execute('INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id', 
+                (normalized_url, datetime.now()))
     new_id = cur.fetchone()[0]
     conn.commit()
     conn.close()
@@ -76,14 +79,15 @@ def is_url_exists(url):
         return False
     finally:
         conn.close()
-        cur.close()
 
 
 def get_url_id(url):
     conn = db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        cur.execute('SELECT id FROM urls WHERE name = %s', (url,))
+        # Нормализуем URL перед поиском
+        normalized_url = normalize_url(url)
+        cur.execute('SELECT id FROM urls WHERE name = %s', (normalized_url,))
         result = cur.fetchone()
         return result
     finally:
@@ -94,20 +98,29 @@ def get_all_urls():
     conn = db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        cur.execute('SELECT * FROM urls;')
+        cur.execute('''
+            SELECT urls.id, urls.name, urls.created_at, 
+                   MAX(url_checks.created_at) as last_check,
+                   MAX(url_checks.status_code) as status_code
+            FROM urls 
+            LEFT JOIN url_checks ON urls.id = url_checks.url_id
+            GROUP BY urls.id
+            ORDER BY urls.id DESC;
+        ''')
         all_urls = cur.fetchall()
         return all_urls
     finally:
         conn.close()
 
 
-def make_url_check(url, parser_result):
+def make_url_check(url_id, parser_result):
+    """Создать запись о проверке URL по его ID"""
     conn = db_connection()
     cur = conn.cursor()
 
     try:
         if parser_result is None:
-            print(f"Внимание: parser_result is None для URL {url}")
+            print(f"Внимание: parser_result is None для URL ID {url_id}")
             parser_result = {
                 'status_code': None,
                 'h1': '',
@@ -115,20 +128,21 @@ def make_url_check(url, parser_result):
                 'description': ''
             }
 
-        cur.execute('SELECT id FROM urls WHERE name=%s;', (url,))
-        url_row = cur.fetchone()
-        if url_row is None:
-            raise ValueError(f"URL '{url}' не найден в таблице urls.")
-        url_id = url_row[0]
-
         status_code = parser_result.get('status_code')
         h1 = parser_result.get('h1', '') or ''
         title = parser_result.get('title', '') or ''
         description = parser_result.get('description', '') or ''
 
-        h1 = str(h1)[:255]
-        title = str(title)[:255]
-        description = str(description)[:255]
+        # Обрезаем строки до 255 символов
+        h1 = str(h1)[:255] if h1 else ''
+        title = str(title)[:255] if title else ''
+        description = str(description)[:255] if description else ''
+
+        print(f"DEBUG: Сохраняем проверку для URL ID {url_id}:")
+        print(f"  status_code: {status_code}")
+        print(f"  h1: {h1}")
+        print(f"  title: {title}")
+        print(f"  description: {description}")
 
         cur.execute('''
             INSERT INTO url_checks (
@@ -149,7 +163,7 @@ def make_url_check(url, parser_result):
         ))
 
         conn.commit()
-        print(f"✅ Проверка сохранена для URL: {url}, статус: {status_code}")
+        print(f"✅ Проверка сохранена для URL ID: {url_id}, статус: {status_code}")
         
     except Exception as e:
         print(f"❌ Ошибка при сохранении проверки: {e}")
@@ -159,17 +173,19 @@ def make_url_check(url, parser_result):
         conn.close()
 
 
-def get_url_checks(url):
+def get_url_checks(url_id):
+    """Получить все проверки для конкретного URL по его ID"""
     conn = db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
         cur.execute('''SELECT * 
                     FROM url_checks 
-                    JOIN urls ON url_checks.url_id = urls.id 
-                    WHERE urls.name = %s;''', (url,))
+                    WHERE url_id = %s
+                    ORDER BY created_at DESC;''', (url_id,))
         
         result = cur.fetchall()
+        print(f"DEBUG: Найдено {len(result)} проверок для URL ID {url_id}")
         return result
     finally:
         conn.close()
