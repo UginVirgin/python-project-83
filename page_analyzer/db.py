@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 load_dotenv()
-DATABASE_URL = os.getenv('DB_URL')
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 
 def db_connection():
