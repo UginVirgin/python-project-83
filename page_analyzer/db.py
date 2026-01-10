@@ -8,38 +8,45 @@ from urllib.parse import urlparse
 
 load_dotenv()
 
-
 DATABASE_URL = os.getenv('DATABASE_URL')
-
 
 if not DATABASE_URL:
     DATABASE_URL = os.getenv('DB_URL')
 
+is_docker = os.path.exists('/.dockerenv')
 
 if not DATABASE_URL:
-    DATABASE_URL = "postgresql://postgres:password@localhost:5433/hexlet_project_83"
+    if is_docker:
+        # В Docker (для тестов Hexlet)
+        DATABASE_URL = "postgresql://postgres:password@db:5432/page_analyzer"
+        print("DEBUG: Режим Docker - используем 'db:5432/page_analyzer'")
+    else:
+        # Локальная разработка
+        DATABASE_URL = "postgresql://postgres:password@localhost:5433/hexlet_project_83"
+        print("DEBUG: Режим локальный - используем 'localhost:5433/hexlet_project_83'")
 
 print(f"DEBUG: Используем DATABASE_URL: {DATABASE_URL}")
+
+
+def normalize_url(url):
+
+    parsed = urlparse(url)
+    
+    domain = parsed.netloc
+    
+    if ':' in domain:
+        domain = domain.split(':')[0]
+    
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    
+    return domain
 
 
 def db_connection():
     print(f"Подключаемся к БД: {DATABASE_URL}")
     conn = psycopg2.connect(DATABASE_URL)
     return conn
-
-
-def normalize_url(url):
-    parsed = urlparse(url)
-    
-    normalized = parsed.netloc + parsed.path
-    
-    if normalized.startswith('www.'):
-        normalized = normalized[4:]
-    
-    if normalized.endswith('/'):
-        normalized = normalized[:-1]
-    
-    return normalized
 
 
 def add_row(url):
@@ -86,8 +93,8 @@ def get_url_id(url):
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute('SELECT id FROM urls WHERE name = %s', (url,))
-        id = cur.fetchone()
-        return id
+        result = cur.fetchone()
+        return result
     finally:
         conn.close()
 
@@ -108,7 +115,6 @@ def make_url_check(url, parser_result):
     cur = conn.cursor()
 
     try:
-        # Проверяем, что parser_result не None
         if parser_result is None:
             print(f"Внимание: parser_result is None для URL {url}")
             parser_result = {
@@ -124,11 +130,14 @@ def make_url_check(url, parser_result):
             raise ValueError(f"URL '{url}' не найден в таблице urls.")
         url_id = url_row[0]
 
-        # Безопасное извлечение значений
         status_code = parser_result.get('status_code')
         h1 = parser_result.get('h1', '') or ''
         title = parser_result.get('title', '') or ''
         description = parser_result.get('description', '') or ''
+
+        h1 = str(h1)[:255]
+        title = str(title)[:255]
+        description = str(description)[:255]
 
         cur.execute('''
             INSERT INTO url_checks (
@@ -149,7 +158,7 @@ def make_url_check(url, parser_result):
         ))
 
         conn.commit()
-        print(f"✅ Проверка сохранена для URL: {url}")
+        print(f"✅ Проверка сохранена для URL: {url}, статус: {status_code}")
         
     except Exception as e:
         print(f"❌ Ошибка при сохранении проверки: {e}")

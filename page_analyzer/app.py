@@ -50,11 +50,23 @@ def urls_check(id):
     return render_template('url_id.html', url_values=url_values, checks=url_checks)
 
 
-@app.route('/urls/<int:id>/checks', methods=['POST', 'GET'])
+@app.route('/urls/<int:id>/checks', methods=['POST'])
 def check_url_info(id):
     url = get_url_values(id)["name"]
-    parser_result = url_parser(url)
-    make_url_check(url, parser_result)
-
+    
+    try:
+        parser_result = url_parser(url)
+        print(f"DEBUG: Результат парсера для {url}: {parser_result}")
+        
+        if parser_result is None or parser_result.get('status_code') is None:
+            flash('Произошла ошибка при проверке', 'danger')
+        else:
+            make_url_check(url, parser_result)
+            flash('Страница успешно проверена', 'success')
+            
+    except Exception as e:
+        print(f"Ошибка в check_url_info: {e}")
+        flash('Произошла ошибка при проверке', 'danger')
+    
     return redirect(url_for('urls_check', id=id))
 
