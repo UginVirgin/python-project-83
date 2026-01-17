@@ -43,7 +43,6 @@ def db_connection():
 def add_row(url):
     conn = db_connection()
     cur = conn.cursor()
-    # Нормализуем URL перед сохранением
     normalized_url = normalize_url(url)
     cur.execute('INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id', 
                 (normalized_url, datetime.now()))
@@ -85,7 +84,6 @@ def get_url_id(url):
     conn = db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        # Нормализуем URL перед поиском
         normalized_url = normalize_url(url)
         cur.execute('SELECT id FROM urls WHERE name = %s', (normalized_url,))
         result = cur.fetchone()
@@ -133,7 +131,6 @@ def make_url_check(url_id, parser_result):
         title = parser_result.get('title', '') or ''
         description = parser_result.get('description', '') or ''
 
-        # Обрезаем строки до 255 символов
         h1 = str(h1)[:255] if h1 else ''
         title = str(title)[:255] if title else ''
         description = str(description)[:255] if description else ''
@@ -159,7 +156,7 @@ def make_url_check(url_id, parser_result):
             h1,
             title,
             description,
-            datetime.now()
+            datetime.now().date()
         ))
 
         conn.commit()
