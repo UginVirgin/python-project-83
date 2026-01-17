@@ -19,18 +19,18 @@ if not DATABASE_URL:
     if is_docker:
         # В Docker (для тестов Hexlet)
         DATABASE_URL = "postgresql://postgres:password@db:5432/page_analyzer"
-        print("DEBUG: Режим Docker - используем 'db:5432/page_analyzer'")
     else:
         # Локальная разработка
         DATABASE_URL = "postgresql://postgres:password@localhost:5433/hexlet_project_83"
-        print("DEBUG: Режим локальный - используем 'localhost:5433/hexlet_project_83'")
 
 print(f"DEBUG: Используем DATABASE_URL: {DATABASE_URL}")
 
 
 def normalize_url(input_url):
     url_parts = urlparse(input_url)
-    normalized_url = urlunparse((url_parts.scheme, url_parts.netloc, '', '', '', ''))
+    normalized_url = urlunparse(
+        (url_parts.scheme, url_parts.netloc, '', '', '', '')
+        )
     return normalized_url
 
 
@@ -44,7 +44,9 @@ def add_row(url):
     conn = db_connection()
     cur = conn.cursor()
     normalized_url = normalize_url(url)
-    cur.execute('INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id', 
+    cur.execute('''
+                INSERT INTO urls (name, created_at) 
+                VALUES (%s, %s) RETURNING id''', 
                 (normalized_url, datetime.now()))
     new_id = cur.fetchone()[0]
     conn.commit()
@@ -160,7 +162,6 @@ def make_url_check(url_id, parser_result):
         ))
 
         conn.commit()
-        print(f"✅ Проверка сохранена для URL ID: {url_id}, статус: {status_code}")
         
     except Exception as e:
         print(f"❌ Ошибка при сохранении проверки: {e}")

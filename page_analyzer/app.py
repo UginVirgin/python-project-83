@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, request, flash, url_for
-from .db import add_row, get_url_values, is_url_exists, get_url_id, get_all_urls, make_url_check, get_url_checks
+from .db import (add_row, get_url_values, is_url_exists, 
+                 get_url_id, get_all_urls, make_url_check, 
+                 get_url_checks)
 from .url_parser import url_parser
 import validators
 
@@ -23,7 +25,8 @@ def urls():
         url = request.form['url']
         if validators.url(url):
             if is_url_exists(url):
-                flash('Страница уже существует', category='alert alert-success')
+                flash('Страница уже существует', 
+                      category='alert alert-success')
                 url_id_result = get_url_id(url)
                 if url_id_result and 'id' in url_id_result:
                     id = url_id_result['id']
@@ -33,7 +36,8 @@ def urls():
                     result = redirect(url_for('hello'))
             else:
                 new_row_id = add_row(url)
-                flash('Страница успешно добавлена', category='alert alert-success')
+                flash('Страница успешно добавлена', 
+                      category='alert alert-success')
                 result = redirect(url_for('urls_check', id=new_row_id))
         else:
             flash('Некорректный URL', category='alert alert-danger')
@@ -55,7 +59,9 @@ def urls_check(id):
     url_checks = get_url_checks(id)
     print(f"DEBUG: Получено {len(url_checks)} проверок для URL ID {id}")
 
-    return render_template('url_id.html', url_values=url_values, checks=url_checks)
+    return render_template(
+        'url_id.html', url_values=url_values, checks=url_checks
+        )
 
 
 @app.route('/urls/<int:id>/checks', methods=['POST'])
