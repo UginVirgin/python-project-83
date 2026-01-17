@@ -23,20 +23,20 @@ def urls():
         url = request.form['url']
         if validators.url(url):
             if is_url_exists(url):
-                flash('Страница уже существует', category='alert-success')
+                flash('Страница уже существует', category='alert alert-success')
                 url_id_result = get_url_id(url)
                 if url_id_result and 'id' in url_id_result:
                     id = url_id_result['id']
                     result = redirect(url_for('urls_check', id=id))
                 else:
-                    flash('Ошибка: не найден ID URL', 'danger')
+                    flash('Ошибка: не найден ID URL', 'alert alert-danger')
                     result = redirect(url_for('hello'))
             else:
                 new_row_id = add_row(url)
-                flash('Страница успешно добавлена', category='alert-success')
+                flash('Страница успешно добавлена', category='alert alert-success')
                 result = redirect(url_for('urls_check', id=new_row_id))
         else:
-            flash('Некорректный URL', category='alert-danger')
+            flash('Некорректный URL', category='alert alert-danger')
             result = render_template('index.html'), 422
         return result
     
@@ -48,7 +48,7 @@ def urls():
 def urls_check(id):
     url_values = get_url_values(id)
     if not url_values:
-        flash('URL не найден', 'danger')
+        flash('URL не найден', 'alert alert-danger')
         return redirect(url_for('urls'))
     
     # Исправлено: передаем ID, а не имя URL
@@ -62,7 +62,7 @@ def urls_check(id):
 def check_url_info(id):
     url_data = get_url_values(id)
     if not url_data:
-        flash('URL не найден', 'danger')
+        flash('URL не найден', 'alert alert-danger')
         return redirect(url_for('urls'))
     
     url = url_data["name"]
@@ -72,14 +72,14 @@ def check_url_info(id):
         print(f"DEBUG: Результат парсера для {url}: {parser_result}")
         
         if parser_result is None or parser_result.get('status_code') is None:
-            flash('Произошла ошибка при проверке', 'danger')
+            flash('Произошла ошибка при проверке', 'alert alert-danger')
         else:
             # Исправлено: передаем ID, а не имя URL
             make_url_check(id, parser_result)
-            flash('Страница успешно проверена', 'success')
+            flash('Страница успешно проверена', 'alert alert-success')
             
     except Exception as e:
         print(f"Ошибка в check_url_info: {e}")
-        flash('Произошла ошибка при проверке', 'danger')
+        flash('Произошла ошибка при проверке', 'alert alert-danger')
     
     return redirect(url_for('urls_check', id=id))
