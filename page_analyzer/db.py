@@ -2,28 +2,24 @@ import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
 import os
+import logging
 from datetime import datetime
 from urllib.parse import urlparse, urlunparse
 
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-if not DATABASE_URL:
-    DATABASE_URL = os.getenv('DB_URL')
-
 is_docker = os.path.exists('/.dockerenv')
 
-if not DATABASE_URL:
-    if is_docker:
-        # В Docker (для тестов Hexlet)
-        DATABASE_URL = "postgresql://postgres:password@db:5432/page_analyzer"
-    else:
-        # Локальная разработка
-        DATABASE_URL = "postgresql://postgres:password@localhost:5433/hexlet_project_83"
+if is_docker:
+    # В Docker (для тестов Hexlet)
+    DATABASE_URL = os.getenv('DATABASE_URL_FOR_TESTS')
+else:
+    # Локальная разработка
+    DATABASE_URL = os.getenv('DATABASE_URL')
 
-print(f"DEBUG: Используем DATABASE_URL: {DATABASE_URL}")
+logger.info(f"Используем DATABASE_URL: {DATABASE_URL}")
 
 
 def normalize_url(input_url):
@@ -35,7 +31,7 @@ def normalize_url(input_url):
 
 
 def db_connection():
-    print(f"Подключаемся к БД: {DATABASE_URL}")
+    logger.debug(f"Подключаемся к БД: {DATABASE_URL}")
     conn = psycopg2.connect(DATABASE_URL)
     return conn
 
@@ -114,13 +110,12 @@ def get_all_urls():
 
 
 def make_url_check(url_id, parser_result):
-    """Создать запись о проверке URL по его ID"""
     conn = db_connection()
     cur = conn.cursor()
 
     try:
         if parser_result is None:
-            print(f"Внимание: parser_result is None для URL ID {url_id}")
+            logger.warning(f"parser_result is None для URL ID {url_id}")
             parser_result = {
                 'status_code': None,
                 'h1': '',
@@ -137,11 +132,11 @@ def make_url_check(url_id, parser_result):
         title = str(title)[:255] if title else ''
         description = str(description)[:255] if description else ''
 
-        print(f"DEBUG: Сохраняем проверку для URL ID {url_id}:")
-        print(f"  status_code: {status_code}")
-        print(f"  h1: {h1}")
-        print(f"  title: {title}")
-        print(f"  description: {description}")
+        logger.debug(f"Сохраняем проверку для URL ID {url_id}:")
+        logger.debug(f"  status_code: {status_code}")
+        logger.debug(f"  h1: {h1}")
+        logger.debug(f"  title: {title}")
+        logger.debug(f"  description: {description}")
 
         cur.execute('''
             INSERT INTO url_checks (
@@ -164,7 +159,7 @@ def make_url_check(url_id, parser_result):
         conn.commit()
         
     except Exception as e:
-        print(f"❌ Ошибка при сохранении проверки: {e}")
+        logger.error(f"❌ Ошибка при сохранении проверки: {e}", exc_info=True)
         conn.rollback()
         raise
     finally:
@@ -183,7 +178,7 @@ def get_url_checks(url_id):
                     ORDER BY created_at DESC;''', (url_id,))
         
         result = cur.fetchall()
-        print(f"DEBUG: Найдено {len(result)} проверок для URL ID {url_id}")
+        logger.debug(f"Найдено {len(result)} проверок для URL ID {url_id}")
         return result
     finally:
         conn.close()

@@ -6,8 +6,19 @@ from .db import (add_row, get_url_values, is_url_exists,
                  get_url_checks)
 from .url_parser import url_parser
 import validators
+import logging
 
-#комментарий чтобы проверить правильность коммита linter debug
+ALERT_SUCCESS = 'alert alert-success'
+ALERT_DANGER = 'alert alert-danger'
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -15,7 +26,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 @app.route('/')
 def hello():
-    print("Это hello")
+    logger.debug("Это hello")
     return render_template("index.html")
 
 
@@ -26,21 +37,21 @@ def urls():
         if validators.url(url):
             if is_url_exists(url):
                 flash('Страница уже существует', 
-                      category='alert alert-success')
+                      category=ALERT_SUCCESS)
                 url_id_result = get_url_id(url)
                 if url_id_result and 'id' in url_id_result:
                     id = url_id_result['id']
                     result = redirect(url_for('urls_check', id=id))
                 else:
-                    flash('Ошибка: не найден ID URL', 'alert alert-danger')
+                    flash('Ошибка: не найден ID URL', ALERT_DANGER)
                     result = redirect(url_for('hello'))
             else:
                 new_row_id = add_row(url)
                 flash('Страница успешно добавлена', 
-                      category='alert alert-success')
+                      category=ALERT_SUCCESS)
                 result = redirect(url_for('urls_check', id=new_row_id))
         else:
-            flash('Некорректный URL', category='alert alert-danger')
+            flash('Некорректный URL', category=ALERT_DANGER)
             result = render_template('index.html'), 422
         return result
     
@@ -52,12 +63,12 @@ def urls():
 def urls_check(id):
     url_values = get_url_values(id)
     if not url_values:
-        flash('URL не найден', 'alert alert-danger')
+        flash('URL не найден', ALERT_DANGER)
         return redirect(url_for('urls'))
     
     # Исправлено: передаем ID, а не имя URL
     url_checks = get_url_checks(id)
-    print(f"DEBUG: Получено {len(url_checks)} проверок для URL ID {id}")
+    logger.debug(f"Получено {len(url_checks)} проверок для URL ID {id}")
 
     return render_template(
         'url_id.html', url_values=url_values, checks=url_checks
@@ -68,24 +79,24 @@ def urls_check(id):
 def check_url_info(id):
     url_data = get_url_values(id)
     if not url_data:
-        flash('URL не найден', 'alert alert-danger')
+        flash('URL не найден', ALERT_DANGER)
         return redirect(url_for('urls'))
     
     url = url_data["name"]
     
     try:
         parser_result = url_parser(url)
-        print(f"DEBUG: Результат парсера для {url}: {parser_result}")
+        logger.debug(f"Результат парсера для {url}: {parser_result}")
         
         if parser_result is None or parser_result.get('status_code') is None:
-            flash('Произошла ошибка при проверке', 'alert alert-danger')
+            flash('Произошла ошибка при проверке', ALERT_DANGER)
         else:
             # Исправлено: передаем ID, а не имя URL
             make_url_check(id, parser_result)
-            flash('Страница успешно проверена', 'alert alert-success')
+            flash('Страница успешно проверена', ALERT_SUCCESS)
             
     except Exception as e:
-        print(f"Ошибка в check_url_info: {e}")
-        flash('Произошла ошибка при проверке', 'alert alert-danger')
+        logger.error(f"Исключение при проверке URL ID {id}: {e}", exc_info=True)
+        flash('Произошла ошибка при проверке', ALERT_DANGER)
     
     return redirect(url_for('urls_check', id=id))
