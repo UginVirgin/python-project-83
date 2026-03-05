@@ -7,7 +7,7 @@ from .db import (add_row, get_url_values, is_url_exists,
 from .url_parser import url_parser
 import validators
 
-
+#комментарий чтобы проверить правильность коммита linter debug
 load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
