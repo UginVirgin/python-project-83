@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, request, flash, url_for
 from .db import (add_row, get_url_values, is_url_exists, 
@@ -30,31 +31,35 @@ def hello():
     return render_template("index.html")
 
 
+def normalize_url(raw: str) -> str:
+    parsed = urlparse(raw)
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
 @app.route('/urls', methods=['POST', 'GET'])
 def urls():
     if request.method == 'POST':
-        url = request.form['url']
-        if validators.url(url):
-            if is_url_exists(url):
-                flash('Страница уже существует', 
-                      category=ALERT_SUCCESS)
-                url_id_result = get_url_id(url)
-                if url_id_result and 'id' in url_id_result:
-                    id = url_id_result['id']
-                    result = redirect(url_for('urls_check', id=id))
-                else:
-                    flash('Ошибка: не найден ID URL', ALERT_DANGER)
-                    result = redirect(url_for('hello'))
-            else:
-                new_row_id = add_row(url)
-                flash('Страница успешно добавлена', 
-                      category=ALERT_SUCCESS)
-                result = redirect(url_for('urls_check', id=new_row_id))
-        else:
+        raw_url = request.form.get('url', '').strip()
+
+        if not validators.url(raw_url):
             flash('Некорректный URL', category=ALERT_DANGER)
-            result = render_template('index.html'), 422
-        return result
-    
+            return render_template('index.html'), 422
+
+        normalized_url = normalize_url(raw_url)
+
+        if is_url_exists(normalized_url):
+            flash('Страница уже существует', category=ALERT_SUCCESS)
+            url_id_result = get_url_id(normalized_url)
+            if url_id_result and 'id' in url_id_result:
+                return redirect(url_for('urls_check', id=url_id_result['id']))
+
+            flash('Ошибка: не найден ID URL', category=ALERT_DANGER)
+            return redirect(url_for('hello'))
+
+        new_row_id = add_row(normalized_url)
+        flash('Страница успешно добавлена', category=ALERT_SUCCESS)
+        return redirect(url_for('urls_check', id=new_row_id))
+
     urls = get_all_urls()
     return render_template('urls.html', urls=urls)
 
@@ -63,16 +68,13 @@ def urls():
 def urls_check(id):
     url_values = get_url_values(id)
     if not url_values:
-        flash('URL не найден', ALERT_DANGER)
+        flash('URL не найден', category=ALERT_DANGER)
         return redirect(url_for('urls'))
-    
-    # Исправлено: передаем ID, а не имя URL
-    url_checks = get_url_checks(id)
-    logger.debug(f"Получено {len(url_checks)} проверок для URL ID {id}")
 
-    return render_template(
-        'url_id.html', url_values=url_values, checks=url_checks
-        )
+    url_checks = get_url_checks(id)
+    logger.debug("Получено %s проверок для URL ID %s", len(url_checks), id)
+
+    return render_template('url_id.html', url_values=url_values, checks=url_checks)
 
 
 @app.route('/urls/<int:id>/checks', methods=['POST'])
