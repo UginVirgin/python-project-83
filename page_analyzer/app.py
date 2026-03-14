@@ -8,8 +8,8 @@ from .url_parser import url_parser
 import validators
 import logging
 
-ALERT_SUCCESS = 'alert alert-success'
-ALERT_DANGER = 'alert alert-danger'
+ALERT_SUCCESS = 'alert-success'
+ALERT_DANGER = 'alert-danger'
 
 logging.basicConfig(
     level=logging.DEBUG,
